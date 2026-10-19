@@ -1,0 +1,36 @@
+{
+  "name": "marina-bay-street-circuit",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Browser driving prototype: Ferrari 296 GT3 around the Marina Bay Street Circuit (non-commercial).",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "fetch-assets": "node scripts/fetch_assets.mjs",
+    "prepare-car": "node scripts/prepare_car.mjs",
+    "prepare-track": "node scripts/prepare_track.mjs",
+    "test:physics": "node scripts/physics_tune.mjs",
+    "test:smoke": "node scripts/smoke_test.mjs",
+    "preview:model": "node tools/preview-model.mjs",
+    "inspect:meshes": "node tools/inspect-meshes.mjs",
+    "shot:game": "node tools/shot-game.mjs",
+    "test:track": "node scripts/track_check.mjs"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.21.0",
+    "lil-gui": "^0.20.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@gltf-transform/cli": "^4.5.1",
+    "meshoptimizer": "^1.3.0",
+    "puppeteer-core": "^25.14.0",
+    "sharp": "^0.35.5",
+    "vite": "^8.3.4"
+  }
+}

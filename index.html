@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>Marina Bay Street Circuit — Prototype</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <!-- Loading / error overlay. Stage 1 shows a spinner; Stage 5 upgrades this to a real progress bar. -->
+    <div id="loading" class="overlay">
+      <div class="panel">
+        <h1>Marina Bay Street Circuit</h1>
+        <p class="sub">Singapore · non-commercial prototype</p>
+        <div class="bar"><div id="loading-bar-fill" class="fill"></div></div>
+        <p id="loading-status" class="status">Booting…</p>
+        <p class="credits">
+          Track “Marina Bay Street Circuit” by Dave Love (@Tyler_Dave) · CC BY 4.0<br />
+          Car “Ferrari 296 GT3” by vecarz (@heynic) · CC BY-NC 4.0, credit MattDoesBlender<br />
+          Fan-made, non-commercial prototype. Not affiliated with Ferrari or Formula 1.
+        </p>
+      </div>
+    </div>
+
+    <div id="error" class="overlay hidden">
+      <div class="panel error">
+        <h2>Could not start</h2>
+        <p id="error-message">Unknown error.</p>
+        <pre id="error-detail"></pre>
+      </div>
+    </div>
+
+    <div id="hud" class="hidden">
+      <div id="hud-speed-block">
+        <span id="hud-speed">0</span><span class="unit">km/h</span>
+      </div>
+      <div id="hud-gear">N</div>
+      <div id="hud-rpm-wrap"><div id="hud-rpm-fill"></div></div>
+      <div id="hud-help">WASD / arrows drive · Space handbrake · R reset · C camera · F1 debug · Esc pause</div>
+    </div>
+
+    <div id="overlay-paused" class="overlay hidden">
+      <div class="panel">
+        <h1>Paused</h1>
+        <p class="sub">Press Esc to resume</p>
+      </div>
+    </div>
+
+    <div id="debug" class="hidden"></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

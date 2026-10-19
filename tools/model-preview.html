@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Model preview</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #101216;
+        overflow: hidden;
+        font: 12px/1.4 system-ui, sans-serif;
+        color: #cfe;
+      }
+      #wrap {
+        position: relative;
+      }
+      canvas {
+        display: block;
+      }
+      .label {
+        position: absolute;
+        padding: 3px 7px;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+        pointer-events: none;
+      }
+      .quad {
+        position: absolute;
+        outline: 1px solid rgba(255, 255, 255, 0.08);
+        box-sizing: border-box;
+      }
+      #status {
+        position: absolute;
+        left: 8px;
+        bottom: 8px;
+        z-index: 10;
+        white-space: pre;
+        font-family: ui-monospace, monospace;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 6px 9px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="wrap">
+      <div class="quad" id="q0" style="left: 0; top: 0"><span class="label">perspective</span></div>
+      <div class="quad" id="q1" style="left: 640px; top: 0">
+        <span class="label">FRONT — camera on +Z looking back down −Z</span>
+      </div>
+      <div class="quad" id="q2" style="left: 0; top: 480px">
+        <span class="label">SIDE — camera on +X; a +Z-facing model points right</span>
+      </div>
+      <div class="quad" id="q3" style="left: 640px; top: 480px">
+        <span class="label">TOP — camera above, looking down −Y</span>
+      </div>
+      <div id="status">loading…</div>
+    </div>
+
+    <script type="module">
+      import * as THREE from 'three';
+      import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+      const params = new URLSearchParams(location.search);
+      const url = params.get('model');
+      const status = document.getElementById('status');
+
+      const W = 640;
+      const H = 480;
+      const VW = 1280;
+      const VH = 960;
+
+      for (const [i, q] of [
+        [0, [0, 0]],
+        [1, [W, 0]],
+        [2, [0, H]],
+        [3, [W, H]],
+      ].entries()) {
+        const el = document.getElementById(`q${i}`);
+        el.style.width = `${W}px`;
+        el.style.height = `${H}px`;
+        el.style.left = `${q[0]}px`;
+        el.style.top = `${q[1]}px`;
+      }
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(1);
+      renderer.setSize(VW, VH, false);
+      document.getElementById('wrap').appendChild(renderer.domElement);
+      renderer.setScissorTest(true);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x101216);
+
+      scene.add(new THREE.HemisphereLight(0xdfe9ff, 0x202028, 2.2));
+      const key = new THREE.DirectionalLight(0xffffff, 2.6);
+      key.position.set(6, 9, 7);
+      scene.add(key);
+      const fill = new THREE.DirectionalLight(0x99bbff, 1.1);
+      fill.position.set(-7, 4, -6);
+      scene.add(fill);
+
+      const t0 = performance.now();
+      const gltf = await new GLTFLoader().loadAsync(url);
+      const loadMs = performance.now() - t0;
+      const model = gltf.scene;
+      scene.add(model);
+
+      model.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+
+      // Centre on the origin so the axes and grid read cleanly against it.
+      model.position.sub(center);
+      model.updateMatrixWorld(true);
+      const box2 = new THREE.Box3().setFromObject(model);
+      const inner = box2.getSize(new THREE.Vector3());
+      const radius = Math.max(inner.length() / 2, 0.001);
+
+      // Scale the furniture to the model, or a 4 km city gets a 20 m grid.
+      const grid = new THREE.GridHelper(radius * 2, 20, 0x334455, 0x1d2733);
+      scene.add(grid);
+      scene.add(new THREE.AxesHelper(radius * 0.4));
+
+      let tris = 0;
+      let meshes = 0;
+      let textures = 0;
+      const texSet = new Set();
+      model.traverse((o) => {
+        if (!o.isMesh) return;
+        meshes++;
+        const g = o.geometry;
+        tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+        for (const key of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap']) {
+          const t = o.material?.[key];
+          if (t && !texSet.has(t)) {
+            texSet.add(t);
+            textures++;
+          }
+        }
+      });
+
+      status.textContent =
+        `loaded in ${(loadMs / 1000).toFixed(1)} s\n` +
+        `size     ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}\n` +
+        `centre   ${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)}\n` +
+        `y range  ${box.min.y.toFixed(2)} .. ${box.max.y.toFixed(2)}\n` +
+        `${meshes} meshes, ${Math.round(tris).toLocaleString('en-US')} tris, ${textures} textures`;
+
+      const ORTHO = radius * 1.15;
+      const views = [
+        { x: 0, y: 0, persp: true, pos: [1, 0.85, 1.35] },
+        { x: W, y: 0, pos: [0, 0, 1] },
+        { x: 0, y: H, pos: [1, 0, 0] },
+        { x: W, y: H, pos: [0, 1, 0.0001] },
+      ];
+
+      for (const v of views) {
+        let cam;
+        if (v.persp) {
+          cam = new THREE.PerspectiveCamera(38, W / H, radius / 1000, radius * 60);
+          cam.position.copy(new THREE.Vector3(...v.pos).normalize().multiplyScalar(radius * 2.6));
+        } else {
+          cam = new THREE.OrthographicCamera(
+            -ORTHO,
+            ORTHO,
+            ORTHO / (W / H),
+            -ORTHO / (W / H),
+            radius / 1000,
+            radius * 60,
+          );
+          cam.position.copy(new THREE.Vector3(...v.pos).normalize().multiplyScalar(radius * 6));
+        }
+        cam.lookAt(0, 0, 0);
+        cam.updateProjectionMatrix();
+
+        renderer.setViewport(v.x, VH - v.y - H, W, H);
+        renderer.setScissor(v.x, VH - v.y - H, W, H);
+        renderer.render(scene, cam);
+      }
+
+      window.__READY__ = true;
+      window.__INFO__ = { size: size.toArray(), center: center.toArray(), meshes, tris, textures, loadMs };
+    </script>
+  </body>
+</html>
